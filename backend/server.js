@@ -6,6 +6,7 @@ const pool = require("./config/db");
 // Import Routes
 const authRoutes = require("./routes/auth");
 const cartRoutes = require("./routes/cart");
+const wishlistRoutes = require("./routes/wishlist");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -115,6 +116,7 @@ app.get("/api/products/:id", async (req, res) => {
 // MOUNT ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 // 404 Fallback for unhandled /api routes
 app.use("/api", (req, res) => {
