@@ -74,4 +74,15 @@ export const removeFromCart = async (cartId) => {
   }
 };
 
+// Checkout & Place Order with Shipping Address
+export const checkoutOrder = async (orderPayload) => {
+  try {
+    const response = await API.post("/orders/checkout", orderPayload);
+    return response.data;
+  } catch (error) {
+    console.error("checkoutOrder error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 export default API;

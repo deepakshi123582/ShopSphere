@@ -1,60 +1,89 @@
 const express = require("express");
-const pool = require("../config/db");
 const router = express.Router();
+const db = require("../config/db");
 
-// Place Order API
-router.post("/create", async (req, res) => {
-  const connection = await pool.getConnection();
+// POST /api/orders/checkout
+router.post("/checkout", async (req, res) => {
+  const { userId, cartItems, totalAmount, shippingAddress } = req.body;
+
+  if (!userId || !cartItems || cartItems.length === 0 || !shippingAddress) {
+    return res.status(400).json({ success: false, message: "Missing required order details." });
+  }
+
+  const connection = await db.getConnection();
+
   try {
-    const { userId, items, totalAmount, shippingAddress } = req.body;
-
-    if (!userId || !items || items.length === 0 || !shippingAddress) {
-      return res.status(400).json({ success: false, message: "Missing required order details." });
-    }
-
     await connection.beginTransaction();
 
-    // 1. Insert into orders table
-    const [orderResult] = await connection.execute(
-      "INSERT INTO orders (user_id, total_amount, shipping_address) VALUES (?, ?, ?)",
-      [userId, totalAmount, shippingAddress]
+    // 1. Save Shipping Address
+    const [addressResult] = await connection.query(
+      `INSERT INTO user_addresses (user_id, full_name, phone, pincode, address_line, city, state)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        shippingAddress.fullName,
+        shippingAddress.phone,
+        shippingAddress.pincode,
+        shippingAddress.addressLine,
+        shippingAddress.city,
+        shippingAddress.state,
+      ]
     );
+
+    const addressId = addressResult.insertId;
+
+    // 2. Create Master Order Record
+    const [orderResult] = await connection.query(
+      `INSERT INTO orders (user_id, total_amount, status) VALUES (?, ?, 'PLACED')`,
+      [userId, totalAmount]
+    );
+
     const orderId = orderResult.insertId;
 
-    // 2. Insert order items
-    for (const item of items) {
-      await connection.execute(
-        "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-        [orderId, item.product_id, item.quantity, item.price]
-      );
-    }
+    // 3. Insert Individual Items into order_items Table
+    const orderItemsData = cartItems.map((item) => [
+      orderId,
+      item.product_id || item.id,
+      item.quantity,
+      item.price,
+    ]);
 
-    // 3. Clear user's cart
-    await connection.execute("DELETE FROM cart WHERE user_id = ?", [userId]);
+    await connection.query(
+      `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?`,
+      [orderItemsData]
+    );
+
+    // 4. Clear User Cart After Successful Order Placement
+    await connection.query(`DELETE FROM cart WHERE user_id = ?`, [userId]);
 
     await connection.commit();
-    res.status(201).json({ success: true, message: "Order placed successfully!", orderId });
+
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully!",
+      orderId: orderId,
+    });
   } catch (error) {
     await connection.rollback();
-    console.error("Order creation error:", error.message);
-    res.status(500).json({ success: false, message: "Failed to place order." });
+    console.error("Checkout transaction error:", error);
+    res.status(500).json({ success: false, message: "Order processing failed.", error: error.message });
   } finally {
     connection.release();
   }
 });
 
-// Get User Order History
+// GET /api/orders/user/:userId - Get User Order History
 router.get("/user/:userId", async (req, res) => {
+  const { userId } = req.params;
   try {
-    const userId = Number(req.params.userId);
-    const [orders] = await pool.execute(
-      "SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC",
+    const [orders] = await db.query(
+      `SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
     );
-    res.status(200).json({ success: true, orders });
+    res.json({ success: true, orders });
   } catch (error) {
-    console.error("Fetch orders error:", error.message);
-    res.status(500).json({ success: false, message: "Failed to fetch orders." });
+    console.error("Fetch orders error:", error);
+    res.status(500).json({ success: false, message: "Error fetching orders." });
   }
 });
 
