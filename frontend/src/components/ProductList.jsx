@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { fetchProducts } from "../services/api";
+import ProductDetailModal from "./ProductDetailModal";
 
 const categories = ["All", "Electronics", "Fashion", "Footwear", "Home", "Books"];
 
@@ -9,6 +10,7 @@ const ProductList = () => {
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState(null);
 
   useEffect(() => {
     const getProducts = async () => {
@@ -79,7 +81,11 @@ const ProductList = () => {
       {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map((product) => (
-            <div key={product.id} className="border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+            <div
+              key={product.id}
+              onClick={() => setSelectedProductId(product.id)}
+              className="border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-pointer hover:-translate-y-1"
+            >
               <img
                 src={product.image || "https://via.placeholder.com/200"}
                 alt={product.name}
@@ -101,6 +107,18 @@ const ProductList = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Product Detail Modal View */}
+      {selectedProductId && (
+        <ProductDetailModal
+          productId={selectedProductId}
+          onClose={() => setSelectedProductId(null)}
+          onAddToCart={(product) => {
+            alert(`${product.name} added to cart!`);
+            setSelectedProductId(null);
+          }}
+        />
       )}
     </div>
   );
