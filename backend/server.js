@@ -7,6 +7,7 @@ const pool = require("./config/db");
 const authRoutes = require("./routes/auth");
 const cartRoutes = require("./routes/cart");
 const wishlistRoutes = require("./routes/wishlist");
+const orderRoutes = require("./routes/orders");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -117,6 +118,7 @@ app.get("/api/products/:id", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/orders", orderRoutes);
 
 // 404 Fallback for unhandled /api routes
 app.use("/api", (req, res) => {
