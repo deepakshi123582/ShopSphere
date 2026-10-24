@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { fetchProducts, fetchCart, addToCart, updateCartQuantity, removeFromCart } from "../services/api";
-import ProductDetailModal from "./ProductDetailModal";
+import ProductDetailModal from "./ProductDetailsModal"; // Fixed file import path matching Explorer
 import CartDrawer from "./CartDrawer";
 
 const categories = ["All", "Electronics", "Fashion", "Footwear", "Home", "Books"];
-const DEMO_USER_ID = 1; // Temporary guest/logged user ID for state synchronization
+const DEMO_USER_ID = 1; // Guest/logged user ID for cart synchronization
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -32,6 +32,11 @@ const ProductList = () => {
 
   useEffect(() => {
     loadCart();
+
+    // Listen for openCart event dispatched from Navbar
+    const handleOpenCartEvent = () => setIsCartOpen(true);
+    window.addEventListener("openCart", handleOpenCartEvent);
+    return () => window.removeEventListener("openCart", handleOpenCartEvent);
   }, []);
 
   useEffect(() => {

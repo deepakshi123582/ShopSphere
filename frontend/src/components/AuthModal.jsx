@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import API from "../services/api";
 
 const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,8 +12,8 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
     e.preventDefault();
     setError(null);
     try {
-      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
-      const res = await axios.post(`http://localhost:5000${endpoint}`, formData);
+      const endpoint = isLogin ? "/auth/login" : "/auth/register";
+      const res = await API.post(endpoint, formData);
       if (res.data.success) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
